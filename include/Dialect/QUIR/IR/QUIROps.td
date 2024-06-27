@@ -26,7 +26,7 @@ include "mlir/Interfaces/CallInterfaces.td"
 include "mlir/Interfaces/CastInterfaces.td"
 include "mlir/Interfaces/ControlFlowInterfaces.td"
 include "mlir/Interfaces/InferTypeOpInterface.td"
-include "mlir/IR/FunctionInterfaces.td"
+include "mlir/Interfaces/FunctionInterfaces.td"
 include "mlir/IR/OpAsmInterface.td"
 include "mlir/IR/SymbolInterfaces.td"
 
@@ -277,6 +277,10 @@ def QUIR_CallDefCalGateOp : QUIR_Op<"call_defcal_gate", [
             return {arg_operand_begin(), arg_operand_end()};
         }
 
+        MutableOperandRange getArgOperandsMutable() {
+            return getOperandsMutable();
+        }
+
         operand_iterator arg_operand_begin() { return operand_begin(); }
         operand_iterator arg_operand_end() { return operand_end(); }
 
@@ -339,6 +343,10 @@ def QUIR_CallDefcalMeasureOp : QUIR_Op<"call_defcal_measure", [
         /// Get the argument operands to the called function.
         operand_range getArgOperands() {
             return {arg_operand_begin(), arg_operand_end()};
+        }
+
+        MutableOperandRange getArgOperandsMutable() {
+            return getOperandsMutable();
         }
 
         operand_iterator arg_operand_begin() { return operand_begin(); }
@@ -407,6 +415,10 @@ def QUIR_CallSubroutineOp : QUIR_Op<"call_subroutine", [CallOpInterface]> {
         /// Get the argument operands to the called function.
         operand_range getArgOperands() {
             return {arg_operand_begin(), arg_operand_end()};
+        }
+
+        MutableOperandRange getArgOperandsMutable() {
+            return getOperandsMutable();
         }
 
         operand_iterator arg_operand_begin() { return operand_begin(); }

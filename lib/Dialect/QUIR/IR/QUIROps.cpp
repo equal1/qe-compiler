@@ -30,7 +30,7 @@
 #include "mlir/IR/BuiltinAttributeInterfaces.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Diagnostics.h"
-#include "mlir/IR/FunctionImplementation.h"
+#include "mlir/Interfaces/FunctionImplementation.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/OpDefinition.h"
@@ -646,14 +646,13 @@ void SwitchOp::print(mlir::OpAsmPrinter &printer) {
 
 /// Given the region at `index`, or the parent operation if `index` is None,
 /// return the successor regions. These are the regions that may be selected
-/// during the flow of control. `operands` is a set of optional attributes that
-/// correspond to a constant value for each operand, or null if that operand is
-/// not a constant.
+/// during the flow of control. 
+
 void quir::SwitchOp::getSuccessorRegions(
-    std::optional<unsigned> index, ArrayRef<Attribute> operands,
+    mlir::RegionBranchPoint point,
     SmallVectorImpl<RegionSuccessor> &regions) {
   // regions branch back to parent operation
-  if (index.has_value()) {
+  if (!point.isParent()) {
     regions.push_back(RegionSuccessor(getResults()));
     return;
   }

@@ -22,8 +22,8 @@ add_mlir_dialect_library(MLIRPulseDialect
 
         DEPENDS
         MLIRPulseIncGen
+	QSSCUtils
 
 	LINK_LIBS PUBLIC
 	MLIRIR
-	QSSCUtils
 	)

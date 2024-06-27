@@ -29,6 +29,7 @@
 
 #include "Dialect/QCS/IR/QCSTypes.h"
 
+#include "mlir/Bytecode/BytecodeOpInterface.h"
 #include "mlir/IR/SymbolTable.h"
 #include "llvm/ADT/StringMap.h"
 

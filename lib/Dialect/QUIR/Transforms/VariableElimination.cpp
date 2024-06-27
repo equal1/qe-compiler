@@ -134,7 +134,7 @@ struct MaterializeBitOpForInt : public OpConversionPattern<OperationType> {
     if (!op.getResult().getType().isSignlessInteger())
       return failure();
 
-    rewriter.updateRootInPlace(
+    rewriter.modifyOpInPlace(
         op, [&]() { op->setOperands(adaptor.getOperands()); });
 
     return success();

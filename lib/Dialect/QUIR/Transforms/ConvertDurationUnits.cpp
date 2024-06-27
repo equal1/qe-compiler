@@ -157,7 +157,7 @@ struct DurationUnitsConversionPattern
                   ConversionPatternRewriter &rewriter) const override {
 
     // Update the operand input types using the adaptor
-    rewriter.updateRootInPlace(
+    rewriter.modifyOpInPlace(
         op, [&]() { op->setOperands(adaptor.getOperands()); });
 
     return success();

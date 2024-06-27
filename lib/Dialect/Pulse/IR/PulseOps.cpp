@@ -17,7 +17,7 @@
 #include "Dialect/Pulse/IR/PulseOps.h"
 
 #include "Dialect/Pulse/IR/PulseTraits.h"
-#include "Dialect/QUIR/IR/QUIROps.h"
+// #include "Dialect/QUIR/IR/QUIROps.h"
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
 #include "mlir/Dialect/Complex/IR/Complex.h"
@@ -26,7 +26,7 @@
 #include "mlir/IR/Builders.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/BuiltinTypeInterfaces.h"
-#include "mlir/IR/FunctionImplementation.h"
+#include "mlir/Interfaces/FunctionImplementation.h"
 #include "mlir/IR/IRMapping.h"
 #include "mlir/IR/Location.h"
 #include "mlir/IR/OpImplementation.h"

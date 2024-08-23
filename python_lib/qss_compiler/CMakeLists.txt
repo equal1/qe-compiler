@@ -51,4 +51,4 @@ add_custom_target(copy_python_files_qss_compiler DEPENDS ${PY_QSSC_FILES})
 add_dependencies(py_qssc copy_python_files_qss_compiler)
 
 # Make static resources of the compiler available in the python package
-file(CREATE_LINK ${QSSC_RESOURCES_OUTPUT_INTDIR} ${CMAKE_CURRENT_BINARY_DIR}/resources SYMBOLIC)
+# file(CREATE_LINK ${QSSC_RESOURCES_OUTPUT_INTDIR} ${CMAKE_CURRENT_BINARY_DIR}/resources SYMBOLIC)

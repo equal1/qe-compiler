@@ -177,7 +177,7 @@ def Pulse_WaveformContainerOp : Pulse_Op<"waveform_container", [Pure, NoTerminat
     let hasVerifier = 1;
 }
 
-def Pulse_Frame_CreateOp : Pulse_Op<"create_frame", [Pure, SequenceAllowed, SameVariadicOperandSize]> {
+def Pulse_Frame_CreateOp : Pulse_Op<"create_frame", [Pure, SequenceAllowed, AttrSizedOperandSegments]> {
     let summary = "Creates a frame with a frequency and a phase.";
     let description = [{
         The `pulse.frame` operation creates a frame with optional arguments to initialize amplitude, frequency, and phase. One can also
@@ -215,7 +215,7 @@ def Pulse_Port_CreateOp : Pulse_Op<"create_port", [Pure]> {
     let results = (outs Pulse_PortType:$out);
 }
 
-def Pulse_MixFrameOp : Pulse_Op<"mix_frame", [Pure, SequenceAllowed, SameVariadicOperandSize]> {
+def Pulse_MixFrameOp : Pulse_Op<"mix_frame", [Pure, SequenceAllowed, AttrSizedOperandSegments]> {
     let summary = "Mixes a frame with a port.";
     let description = [{
         The `pulse.mix_frame` operation creates a frame mixed with a port, with optional arguments to initialize amplitude, frequency, and phase. One can also
@@ -232,7 +232,12 @@ def Pulse_MixFrameOp : Pulse_Op<"mix_frame", [Pure, SequenceAllowed, SameVariadi
         ```
     }];
 
-    let arguments = (ins Pulse_PortType:$port, StrAttr:$uid, Optional<AnyComplex>:$initial_amp, Optional<F64>:$initial_freq, Optional<AnyAngle>:$initial_phase);
+    let arguments = (ins Pulse_PortType:$port,
+                            StrAttr:$uid,
+                            Optional<AnyComplex>:$initial_amp,
+                            Optional<F64>:$initial_freq,
+                            Optional<AnyAngle>:$initial_phase);
+
     let results = (outs Pulse_MixedFrameType:$out);
 }
 

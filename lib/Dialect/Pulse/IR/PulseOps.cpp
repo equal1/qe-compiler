@@ -376,9 +376,10 @@ LogicalResult verifyArgumentAndEntry_(SequenceOp op) {
 LogicalResult verifyClassical_(SequenceOp op) {
   mlir::Operation *classicalOp = nullptr;
   WalkResult const result = op->walk([&](Operation *subOp) {
-    if (isa<mlir::arith::ConstantOp>(subOp) || isa<quir::ConstantOp>(subOp) ||
+    if (isa<quir::ConstantOp>(subOp) ||
         isa<CallSequenceOp>(subOp) || isa<pulse::ReturnOp>(subOp) ||
         isa<SequenceOp>(subOp) || isa<mlir::complex::CreateOp>(subOp) ||
+        (subOp->getDialect()->getNamespace() == arith::ArithDialect::getDialectNamespace()) ||
         subOp->hasTrait<mlir::pulse::SequenceAllowed>() ||
         subOp->hasTrait<mlir::pulse::SequenceRequired>())
       return WalkResult::advance();

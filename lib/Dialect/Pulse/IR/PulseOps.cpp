@@ -44,6 +44,7 @@
 #include "llvm/ADT/Twine.h"
 #include "llvm/Support/Error.h"
 
+#include <Dialect/Pulse/IR/PulseInterfaces.h>
 #include <cassert>
 #include <cstdint>
 #include <optional>
@@ -86,6 +87,26 @@ mlir::LogicalResult ConstOp::verify() {
   if (durDeclOp && durDeclOp.value() < 0)
     return emitOpError("duration must be >= 0.");
   return success();
+}
+
+llvm::Expected<uint64_t>
+GaussianOp::getDuration(mlir::Operation *) {
+  return PulseOpSchedulingInterface::getDuration<GaussianOp>(getOperation());
+}
+
+llvm::Expected<uint64_t>
+GaussianSquareOp::getDuration(mlir::Operation *) {
+  return PulseOpSchedulingInterface::getDuration<GaussianSquareOp>(getOperation());
+}
+
+llvm::Expected<uint64_t>
+DragOp::getDuration(mlir::Operation *) {
+  return PulseOpSchedulingInterface::getDuration<DragOp>(getOperation());
+}
+
+llvm::Expected<uint64_t>
+ConstOp::getDuration(mlir::Operation *) {
+  return PulseOpSchedulingInterface::getDuration<ConstOp>(getOperation());
 }
 
 //===----------------------------------------------------------------------===//

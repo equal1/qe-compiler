@@ -33,7 +33,11 @@ include "mlir/IR/OpBase.td"
 include "mlir/IR/SymbolInterfaces.td"
 
 
-def Pulse_GaussianOp : Pulse_Op<"gaussian", [Pure, SequenceAllowed]> {
+def Pulse_GaussianOp : Pulse_Op<"gaussian", [
+        Pure,
+        SequenceAllowed,
+        DeclareOpInterfaceMethods<PulseOpSchedulingInterface, ["getDuration"]>
+]> {
     let summary = "Create a Gaussian waveform.";
     let description = [{
         The `pulse.gaussian` operation creates a Gaussian waveform.
@@ -55,7 +59,11 @@ def Pulse_GaussianOp : Pulse_Op<"gaussian", [Pure, SequenceAllowed]> {
 }
 
 
-def Pulse_GaussianSquareOp : Pulse_Op<"gaussian_square", [Pure, SequenceAllowed]> {
+def Pulse_GaussianSquareOp : Pulse_Op<"gaussian_square", [
+        Pure,
+        SequenceAllowed,
+        DeclareOpInterfaceMethods<PulseOpSchedulingInterface, ["getDuration"]>
+]> {
     let summary = "Create a Gaussian Square waveform.";
     let description = [{
         The `pulse.gaussian_square` operation creates a Gaussian Square waveform. It is a Gaussian
@@ -80,7 +88,11 @@ def Pulse_GaussianSquareOp : Pulse_Op<"gaussian_square", [Pure, SequenceAllowed]
 
 }
 
-def Pulse_DragOp : Pulse_Op<"drag", [Pure, SequenceAllowed]> {
+def Pulse_DragOp : Pulse_Op<"drag", [
+        Pure,
+        SequenceAllowed,
+        DeclareOpInterfaceMethods<PulseOpSchedulingInterface, ["getDuration"]>
+]> {
     let summary = "Create a Drag waveform.";
     let description = [{
         The `pulse.drag` operation creates a DRAG waveform. The DRAG waveform is composed of a
@@ -105,7 +117,11 @@ def Pulse_DragOp : Pulse_Op<"drag", [Pure, SequenceAllowed]> {
     let hasVerifier = 1;
 }
 
-def Pulse_ConstOp : Pulse_Op<"const_waveform", [Pure, SequenceAllowed]> {
+def Pulse_ConstOp : Pulse_Op<"const_waveform", [
+        Pure,
+        SequenceAllowed,
+        DeclareOpInterfaceMethods<PulseOpSchedulingInterface, ["getDuration"]>
+]> {
     let summary = "Create a Constant waveform.";
     let description = [{
         The `pulse.const_waveform` operation creates a constant waveform. This is a flat top waveform

@@ -62,6 +62,8 @@ private:
 
   void addTimepoints(mlir::OpBuilder &builder,
                      mixedFrameMap_t &mixedFrameSequences, int64_t &maxTime);
+
+  void addTimePoints(SequenceOp sequenceOp, int64_t &maxTime);
   qssc::utils::SymbolCacheAnalysis *symbolCache{nullptr};
 };
 } // namespace mlir::pulse

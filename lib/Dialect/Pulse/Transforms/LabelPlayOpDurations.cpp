@@ -29,6 +29,7 @@
 #include "llvm/ADT/StringRef.h"
 
 #include <cstdint>
+#include <mlir/IR/Visitors.h>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -71,10 +72,33 @@ void LabelPlayOpDurationsPass::runOnOperation() {
     // actually called
     auto searchSequence = argumentToDuration.find(sequenceStr);
     if (searchSequence == argumentToDuration.end())
-      return;
-    auto wfArgNumber = playOp.getWfr().dyn_cast<BlockArgument>().getArgNumber();
-    auto duration = searchSequence->second[wfArgNumber];
+      return WalkResult::advance();
+
+    auto wfr = playOp.getWfr();
+    uint64_t duration;
+    if(isa<BlockArgument>(wfr)) {
+      auto wfrArg  = cast<BlockArgument>(wfr);
+      auto wfArgNumber = wfrArg.getArgNumber();
+      duration = searchSequence->second[wfArgNumber];
+    } else {
+      auto defOp = dyn_cast<PulseOpSchedulingInterface>(wfr.getDefiningOp());
+      if(!defOp) {
+        signalPassFailure();
+        wfr.getDefiningOp()->emitError("Exptect op to lower to schedulable interface");
+        return WalkResult::interrupt();
+      }
+
+      auto expDuration = defOp.getDuration(defOp.getOperation());
+      if(expDuration.takeError()) {
+        signalPassFailure();
+        wfr.getDefiningOp()->emitError("Cannot get duration of the waveform");
+        return WalkResult::interrupt();
+      }
+      duration = expDuration.get();
+    }
+
     mlir::pulse::PulseOpSchedulingInterface::setDuration(playOp, duration);
+    return WalkResult::advance();
   });
 
 } // runOnOperation

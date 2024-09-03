@@ -25,13 +25,11 @@
 #include "Dialect/Pulse/IR/PulseTraits.h"
 
 #include "mlir/Dialect/Arith/IR/Arith.h"
+#include "mlir/Dialect/Complex/IR/Complex.h"
 #include "mlir/IR/BuiltinAttributes.h"
 #include "mlir/IR/Region.h"
 #include "mlir/IR/Value.h"
 #include "mlir/Support/LLVM.h"
-
-#include <cstdint>
-#include <optional>
 
 namespace mlir::pulse {
 
@@ -84,44 +82,61 @@ void sortOpsByTimepoint(SequenceOp &sequenceOp) {
   // sort ops by timepoint
   for (Region &region : sequenceOp->getRegions()) {
     for (Block &block : region.getBlocks()) {
-      auto &blockOps = block.getOperations();
-      blockOps.sort(
-          [&](Operation &op1, Operation &op2) {
-            // put constants ahead of everything else
-            if (isa<arith::ConstantOp>(op1) && !isa<arith::ConstantOp>(op2))
-              return true;
+      llvm::SmallVector<mlir::Operation*> ops;
+      for (auto &op : block.getOperations()) {
+        if(!op.hasTrait<OpTrait::IsTerminator>())
+          ops.push_back(&op);
+      }
 
-            bool const testOp1 = (op1.hasTrait<mlir::pulse::HasTargetFrame>() ||
-                                  isa<CallSequenceOp>(op1));
-            bool const testOp2 = (op2.hasTrait<mlir::pulse::HasTargetFrame>() ||
-                                  isa<CallSequenceOp>(op2));
+      llvm::sort(ops,[](Operation *op1, Operation *op2) {
+        // put constants ahead of everything else
+        if (isa<arith::ConstantOp>(op1) && !isa<arith::ConstantOp>(op2))
+          return true;
 
-            if (!testOp1 || !testOp2)
-              return false;
+        // put complex creator after
+        if (isa<complex::CreateOp>(op1) && !isa<arith::ConstantOp>(op2))
+          return true;
+        // then put waveforms
+        //TODO:  create waveformIface and use it
+        if (isa<pulse::ConstOp>(op1) && !isa<pulse::ConstOp>(op2) && !isa<arith::ConstantOp>(op2) && !isa<complex::CreateOp>(op2))
+          return true;
 
-            std::optional<int64_t> currentTimepoint =
-                PulseOpSchedulingInterface::getTimepoint(&op1);
-            if (!currentTimepoint.has_value()) {
-              op1.emitError()
-                  << "Operation does not have a pulse.timepoint attribute.";
-            }
-            std::optional<int64_t> nextTimepoint =
-                PulseOpSchedulingInterface::getTimepoint(&op2);
-            if (!nextTimepoint.has_value()) {
-              op2.emitError()
-                  << "Operation does not have a pulse.timepoint attribute.";
-            }
+        bool const testOp1 = (op1->hasTrait<mlir::pulse::HasTargetFrame>() ||
+                              isa<CallSequenceOp>(op1));
+        bool const testOp2 = (op2->hasTrait<mlir::pulse::HasTargetFrame>() ||
+                              isa<CallSequenceOp>(op2));
 
-            if (currentTimepoint.value() == nextTimepoint.value()) {
-              // if timepoints are equal, put non-playOp/captureOp (e.g.,
-              // shiftPhaseOp) ahead of playOp/captureOp
-              if (isa<PlayOp>(op1) or isa<CaptureOp>(op1))
-                return false;
-              return true;
-            }
-            // order by timepoint
-            return currentTimepoint.value() < nextTimepoint.value();
-          }); // blockOps.sort
+        if (!testOp1 || !testOp2)
+          return false;
+
+        std::optional<int64_t> currentTimepoint =
+            PulseOpSchedulingInterface::getTimepoint(op1);
+        if (!currentTimepoint.has_value()) {
+          op1->emitError()
+              << "Operation does not have a pulse.timepoint attribute.";
+        }
+        std::optional<int64_t> nextTimepoint =
+            PulseOpSchedulingInterface::getTimepoint(op2);
+        if (!nextTimepoint.has_value()) {
+          op2->emitError()
+              << "Operation does not have a pulse.timepoint attribute.";
+        }
+
+        if (currentTimepoint.value() == nextTimepoint.value()) {
+          // if timepoints are equal, put non-playOp/captureOp (e.g.,
+          // shiftPhaseOp) ahead of playOp/captureOp
+          if (isa<PlayOp>(op1) or isa<CaptureOp>(op1))
+            return false;
+          return true;
+        }
+        // order by timepoint
+        return currentTimepoint.value() < nextTimepoint.value();
+      });
+
+      auto *terminator = block.getTerminator();
+      for(auto *op : ops) {
+        op->moveBefore(terminator);
+      }
     }
   }
 }

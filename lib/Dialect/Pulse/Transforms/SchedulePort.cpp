@@ -44,8 +44,12 @@
 #include "llvm/ADT/StringRef.h"
 #include "llvm/Support/Error.h"
 
+#include <algorithm>
 #include <cassert>
 #include <cstdint>
+#include <llvm/ADT/ADL.h>
+#include <llvm/ADT/DenseMap.h>
+#include <llvm/Support/Casting.h>
 #include <optional>
 #include <utility>
 
@@ -88,18 +92,20 @@ uint64_t SchedulePortPass::processCall(CallSequenceOp &callSequenceOp,
 
 uint64_t SchedulePortPass::processSequence(SequenceOp sequenceOp) {
 
-  mlir::OpBuilder builder(sequenceOp);
+  // mlir::OpBuilder builder(sequenceOp);
 
-  uint32_t numMixedFrames = 0;
-  auto mixedFrameSequences = buildMixedFrameMap(sequenceOp, numMixedFrames);
+  // uint32_t numMixedFrames = 0;
+  // auto mixedFrameSequences = buildMixedFrameMap(sequenceOp, numMixedFrames);
 
   int64_t maxTime = 0;
 
-  addTimepoints(builder, mixedFrameSequences, maxTime);
+  // addTimepoints(builder, mixedFrameSequences, maxTime);
+  addTimePoints(sequenceOp, maxTime);
 
-  // remove all DelayOps - they are no longer required now that we have
+  // remove all DelayOps and BarrierOp - they are no longer required now that we have
   // timepoints
   sequenceOp->walk([&](DelayOp op) { op->erase(); });
+  sequenceOp->walk([&](BarrierOp op) { op->erase(); });
 
   // sort updated ops so that ops across mixed frame are in the correct
   // sequence with respect to timepoint on a single port.
@@ -267,6 +273,104 @@ void SchedulePortPass::addTimepoints(mlir::OpBuilder &builder,
       maxTime = currentTimepoint;
   }
 } // addTimepoints
+
+mlir::Value getTargetFrame(mlir::Operation& op) {
+  Value target;
+  // get mixed_frames
+  if (auto castOp = dyn_cast<DelayOp>(op))
+    target = castOp.getTarget();
+  else if (auto castOp = dyn_cast<PlayOp>(op))
+    target = castOp.getTarget();
+  else if (auto castOp = dyn_cast<CaptureOp>(op))
+    target = castOp.getTarget();
+  else if (auto castOp = dyn_cast<SetFrequencyOp>(op))
+    target = castOp.getTarget();
+  else if (auto castOp = dyn_cast<SetPhaseOp>(op))
+    target = castOp.getTarget();
+  else if (auto castOp = dyn_cast<ShiftFrequencyOp>(op))
+    target = castOp.getTarget();
+  else if (auto castOp = dyn_cast<ShiftPhaseOp>(op))
+    target = castOp.getTarget();
+  else if (auto castOp = dyn_cast<SetAmplitudeOp>(op))
+    target = castOp.getTarget();
+
+  return target;
+}
+
+void SchedulePortPass::addTimePoints(SequenceOp sequenceOp,
+                                      int64_t &maxTime) {
+
+  // add timepoint to operations in mixedFrameSequences where timepoints
+  // are calculated based on the duration of delayOps
+  //
+  // Timepoints start at 0 for each mixed frame vector and are calculated
+  // independently for each mixed frame.
+
+  llvm::DenseMap<mlir::Value, int64_t> mixedFrameMap;
+  // process sequence arguments to initialize map with 0 time
+  for (auto const &argument : sequenceOp.getArguments()) {
+    auto argumentType = argument.getType();
+    if (isa<MixedFrameType>(argumentType)) {
+      mixedFrameMap[argument] = 0;
+    }
+  }
+
+  for(auto &op : sequenceOp.getOps()) {
+    if (op.hasTrait<mlir::pulse::HasTargetFrame>()) {
+      auto target = getTargetFrame(op);
+      auto &currentTimepoint = mixedFrameMap[target];
+      auto existingTimepoint = PulseOpSchedulingInterface::getTimepoint(&op);
+
+      if (existingTimepoint.has_value())
+        if (existingTimepoint.value() > currentTimepoint)
+          currentTimepoint = existingTimepoint.value();
+
+      // set attribute on op with current timepoint
+      PulseOpSchedulingInterface::setTimepoint(&op, currentTimepoint);
+
+      // update currentTimepoint if DelayOp or playOp
+      if (auto delayOp = dyn_cast<DelayOp>(op)) {
+        llvm::Expected<uint64_t> durOrError =
+            PulseOpSchedulingInterface::getDuration<DelayOp>(delayOp);
+        if (auto err = durOrError.takeError()) {
+          delayOp.emitError() << toString(std::move(err));
+          signalPassFailure();
+        }
+        currentTimepoint += durOrError.get();
+      } else if (auto playOp = dyn_cast<PlayOp>(op)) {
+        llvm::Expected<uint64_t> durOrError =
+            playOp.getDuration(nullptr /*callSequenceOp*/);
+        if (auto err = durOrError.takeError()) {
+          playOp.emitError() << toString(std::move(err));
+          signalPassFailure();
+        }
+        currentTimepoint += durOrError.get();
+      }
+
+      if (currentTimepoint > maxTime)
+        maxTime = currentTimepoint;
+    } else if (auto castOp = dyn_cast<pulse::BarrierOp>(&op)) {
+      auto frames = castOp.getFrames();
+      auto maxTimedVal = std::max_element(llvm::adl_begin(frames), llvm::adl_end(frames),
+        [&mixedFrameMap](const mlir::Value& lhs, const mlir::Value& rhs){
+           auto lhsElem = mixedFrameMap[lhs];
+           auto rhsElem = mixedFrameMap[rhs];
+           return lhsElem < rhsElem;
+        });
+      if(maxTimedVal == llvm::adl_end(frames))
+        continue;
+
+      auto currentTimepoint = mixedFrameMap[*maxTimedVal];
+      for(auto frame : frames) {
+        mixedFrameMap[frame] = currentTimepoint;
+      }
+
+      // set attribute on op with current timepoint
+      PulseOpSchedulingInterface::setTimepoint(&op, currentTimepoint);
+    }
+  }
+
+} // addTimePoints
 
 void SchedulePortPass::runOnOperation() {
 

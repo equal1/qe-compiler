@@ -33,8 +33,8 @@
 
 // silence lint error for msg not in () - adding () will break macro
 // NOLINTNEXTLINE(bugprone-macro-parentheses)
-#define INDENT_DEBUG(msg) LLVM_DEBUG(llvm::errs() << indent() << msg)
-#define INDENT_DUMP(msg) LLVM_DEBUG(llvm::errs() << indent(); (msg))
+#define INDENT_DEBUG(msg) LLVM_DEBUG(llvm::errs() << msg)
+#define INDENT_DUMP(msg) LLVM_DEBUG( (msg))
 
 namespace qssc::utils {
 
